@@ -133,7 +133,7 @@ export class WorldScene extends Phaser.Scene {
     const storedZoom = parseFloat(localStorage.getItem("medieval-land:zoom") ?? "");
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     this.cameras.main.setZoom(isNaN(storedZoom) ? (isTouch ? 1.5 : 2) : storedZoom);
-    this.cameras.main.setBackgroundColor(0x061a2c);
+    this.cameras.main.setBackgroundColor(0x2c5222); // match normal-grass colour
     this.cameras.main.roundPixels = true;
 
     // Input
@@ -347,8 +347,8 @@ export class WorldScene extends Phaser.Scene {
 
     if (!nearest) return;
 
-    // Collect
-    const gained = Phaser.Math.Between(nearest.amount, nearest.amount + 1);
+    // Collect 1–amount resources from this node
+    const gained = Phaser.Math.Between(1, nearest.amount);
     this.inventory[nearest.resource] = (this.inventory[nearest.resource] ?? 0) + gained;
 
     // Visual feedback
@@ -524,14 +524,18 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Also scatter decorative flowers and grass detail (no collection)
-    const decorKeys = ["tile-flower", "tile-grass-detail"];
-    for (const key of decorKeys) {
+    // Decorative: flowers and grass-detail (no collection)
+    const decorDefs: Array<{ key: string; count: number; scale: number; tint: number }> = [
+      { key: "tile-flower",       count: 120, scale: 1.0, tint: 0xffffff },
+      { key: "tile-grass-detail", count: 160, scale: 1.1, tint: 0xddffdd },
+      { key: "tile-torch",        count:  12, scale: 1.4, tint: 0xffffff },
+    ];
+    for (const { key, count, scale, tint } of decorDefs) {
       if (!this.textures.exists(key)) continue;
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < count; i++) {
         const x = rng.between(margin, mapWidth  - margin);
         const y = rng.between(margin, mapHeight - margin);
-        this.add.image(x, y, key).setScale(1.2).setDepth(y).setTint(0xccddcc);
+        this.add.image(x, y, key).setScale(scale).setDepth(y).setTint(tint);
       }
     }
   }

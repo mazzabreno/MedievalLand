@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { generateMedievalTileset } from "../utils/tilesetGenerator";
+import { generateMedievalTileset, generateFallbackTiles } from "../utils/tilesetGenerator";
 import { SimpleSprite } from "../entities/SimpleSprite";
 import { PLAYER_SPRITES } from "../config/npcRegistry";
 
@@ -104,6 +104,8 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     // Always generate procedural tileset so WorldGenerator has a canvas fallback
     generateMedievalTileset(this);
+    // Generate pixel-art fallbacks for any tile images that weren't on disk
+    generateFallbackTiles(this);
     this.scene.start("WorldScene");
   }
 }
