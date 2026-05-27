@@ -1,0 +1,14 @@
+node_modules/
+.next/
+dist/
+build/
+.anchor/
+target/
+*.so
+*.keypair.json
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+Thumbs.db
