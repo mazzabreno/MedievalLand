@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "yarn workspace @medieval-land/web dev",
-    "build": "yarn workspace @medieval-land/web build",
-    "lint": "yarn workspaces run lint",
-    "test": "yarn workspaces run test"
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
