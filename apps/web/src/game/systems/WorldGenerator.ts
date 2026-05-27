@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { TILE_SIZE } from "../config/gameConfig";
-import type { BiomeType, TileType, StructureType } from "@medieval-land/shared";
+import type { BiomeType, TileType, StructureType } from "../types";
 
 interface GeneratedNode { x: number; y: number; type: TileType }
 interface GeneratedStructure { x: number; y: number; type: StructureType }
