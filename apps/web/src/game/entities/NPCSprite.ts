@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import { TILE_SIZE } from "../config/constants";
-import { SimpleSprite, NPC_DIRECTION_ROW, type Direction } from "./SimpleSprite";
+import { SimpleSprite, type Direction } from "./SimpleSprite";
 import type { NPCDefinition } from "../config/npcRegistry";
 import { profileManager } from "../config/profileManager";
 import { progressionBus } from "../progression/progressionBus";
@@ -37,11 +37,13 @@ export class NPCSprite {
     this.originX = x;
     this.originY = y;
 
-    const desiredKey = def.spriteKey ?? "avatar-player";
-    const spriteKey = scene.textures.exists(desiredKey) ? desiredKey : "avatar-player";
+    // Use the NPC's assigned trainer sprite, fall back to first available player sprite
+    const desiredKey = def.spriteKey ?? "npc-gold";
+    const fallbackKey = scene.textures.exists("player-brendan") ? "player-brendan" : "__DEFAULT";
+    const spriteKey = scene.textures.exists(desiredKey) ? desiredKey : fallbackKey;
 
     this.collisionLayers = collisionLayers ?? [];
-    this.avatar = new SimpleSprite(scene, x, y, spriteKey, NPC_DIRECTION_ROW);
+    this.avatar = new SimpleSprite(scene, x, y, spriteKey);
 
     const container = this.getContainer();
     const colorHex = `#${def.color.toString(16).padStart(6, "0")}`;

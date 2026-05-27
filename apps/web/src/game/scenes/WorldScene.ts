@@ -65,7 +65,9 @@ export class WorldScene extends Phaser.Scene {
     const spawnX = (sz.col + Math.floor(sz.w / 2)) * T + T / 2;
     const spawnY = (sz.row + Math.floor(sz.h / 2)) * T + T / 2;
 
-    const playerTextureKey = this.textures.exists("avatar-player") ? "avatar-player" : "avatar-player";
+    // Use the trainer sprite saved in the player's profile (default: brendan)
+    const savedKey = profileManager?.get().spriteKey ?? "player-brendan";
+    const playerTextureKey = this.textures.exists(savedKey) ? savedKey : "player-brendan";
     this.avatar = new SimpleSprite(this, spawnX, spawnY, playerTextureKey);
 
     const container = this.avatar.getContainer();
@@ -446,7 +448,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private addRemotePlayer(wallet: string, player: OnChainPlayer): void {
-    const avatar = new SimpleSprite(this, player.x, player.y, "avatar-player");
+    // Remote players use a random trainer sprite from the available pool
+    const remoteKeys = ["player-may","player-gold","player-hilbert","player-calem","player-hilda","player-leaf"];
+    const remoteKey = remoteKeys[Math.abs(wallet.charCodeAt(0) + wallet.charCodeAt(1)) % remoteKeys.length];
+    const remoteTexture = this.textures.exists(remoteKey) ? remoteKey : "player-brendan";
+    const avatar = new SimpleSprite(this, player.x, player.y, remoteTexture);
     this.remotePlayers.set(wallet, avatar);
 
     const shortAddr = `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;

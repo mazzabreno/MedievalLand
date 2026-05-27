@@ -1,141 +1,120 @@
+"use client";
 import * as Phaser from "phaser";
 
 export type Direction = "down" | "left" | "right" | "up";
-export type DirectionRow = Record<Direction, number>;
 
-// Player spritesheet row order: down=0, right=1, up=2, left=3
-export const PLAYER_DIRECTION_ROW: DirectionRow = {
-  down: 0,
-  right: 1,
-  up: 2,
-  left: 3,
+/**
+ * PokeWilds walking sprite format:
+ *   128 × 16 px  →  8 frames of 16×16 in a single row
+ *   down  = frames 0-1
+ *   left  = frames 2-3
+ *   right = frames 4-5
+ *   up    = frames 6-7
+ */
+export const PW_DIR_OFFSET: Record<Direction, number> = {
+  down:  0,
+  left:  2,
+  right: 4,
+  up:    6,
 };
 
-// NPC spritesheets (exported by DOM): down, up, right, left
-export const NPC_DIRECTION_ROW: DirectionRow = {
-  down: 0,
-  up: 1,
-  right: 2,
-  left: 3,
-};
+export const FRAME_W = 16;
+export const FRAME_H = 16;
+export const FRAMES_PER_DIR = 2;
+/** Render at 2× so 16px tiles look 32px (matching TILE_SIZE) */
+export const SPRITE_SCALE = 2;
 
 export class SimpleSprite {
-  private scene: Phaser.Scene;
-  private sprite: Phaser.GameObjects.Sprite;
+  private scene:     Phaser.Scene;
+  private sprite:    Phaser.GameObjects.Sprite;
   private container: Phaser.GameObjects.Container;
-  private currentDirection: Direction = "down";
-  private isWalking = false;
-  private textureKey: string;
-  private directionRow: DirectionRow;
+  private dir:       Direction = "down";
+  private moving     = false;
+  private key:       string;
 
-  constructor(
-    scene: Phaser.Scene,
-    x: number,
-    y: number,
-    textureKey: string,
-    directionRow: DirectionRow = PLAYER_DIRECTION_ROW
-  ) {
+  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string) {
     this.scene = scene;
-    this.textureKey = textureKey;
-    this.directionRow = directionRow;
+    this.key   = textureKey;
 
-    const FOOT_Y_LOCAL = -2;
-
-    this.sprite = scene.add.sprite(0, FOOT_Y_LOCAL, textureKey);
+    this.sprite = scene.add.sprite(0, 0, textureKey, 0);
     this.sprite.setOrigin(0.5, 1.0);
-
-    const frame = scene.textures.get(textureKey).get(0);
-    const frameHeight = frame.height || 48;
-    if (frameHeight >= 56) {
-      this.sprite.setScale(0.5);
-    }
+    this.sprite.setScale(SPRITE_SCALE);
 
     this.container = scene.add.container(x, y, [this.sprite]);
-
-    this.registerAnimations();
+    this.registerAnims();
     this.sprite.setFrame(0);
   }
 
-  get x(): number { return this.container.x; }
+  // ── position ─────────────────────────────────────────────────────────────
+  get x() { return this.container.x; }
   set x(v: number) { this.container.x = v; }
-
-  get y(): number { return this.container.y; }
+  get y() { return this.container.y; }
   set y(v: number) { this.container.y = v; }
 
-  getContainer(): Phaser.GameObjects.Container {
-    return this.container;
-  }
+  getContainer() { return this.container; }
 
-  walk(direction: Direction): void {
-    this.currentDirection = direction;
-    if (!this.isWalking || this.sprite.anims.getName() !== `${this.textureKey}-walk-${direction}`) {
-      this.isWalking = true;
-      this.sprite.anims.play(`${this.textureKey}-walk-${direction}`, true);
+  // ── animation control ────────────────────────────────────────────────────
+  walk(direction: Direction) {
+    this.dir = direction;
+    const animKey = `${this.key}-walk-${direction}`;
+    if (!this.moving || this.sprite.anims.getName() !== animKey) {
+      this.moving = true;
+      this.sprite.anims.play(animKey, true);
     }
   }
 
-  idle(): void {
-    if (!this.isWalking) return;
-    this.isWalking = false;
+  idle() {
+    if (!this.moving) return;
+    this.moving = false;
     this.sprite.anims.stop();
-    const row = this.directionRow[this.currentDirection];
-    this.sprite.setFrame(row * 4);
+    this.sprite.setFrame(PW_DIR_OFFSET[this.dir]);
   }
 
-  face(direction: Direction): void {
-    this.currentDirection = direction;
-    this.isWalking = false;
+  face(direction: Direction) {
+    this.dir    = direction;
+    this.moving = false;
     this.sprite.anims.stop();
-    const row = this.directionRow[direction];
-    this.sprite.setFrame(row * 4);
+    this.sprite.setFrame(PW_DIR_OFFSET[direction]);
   }
 
-  updateDepth(): void {
+  updateDepth() {
     this.container.depth = this.container.y;
   }
 
-  setTexture(textureKey: string, directionRow?: DirectionRow): void {
-    if (textureKey === this.textureKey) return;
-    this.textureKey = textureKey;
-    if (directionRow) this.directionRow = directionRow;
+  setTexture(textureKey: string) {
+    if (textureKey === this.key) return;
+    this.key = textureKey;
     this.sprite.setTexture(textureKey);
-    this.registerAnimations();
-    this.idle();
+    this.registerAnims();
+    this.face(this.dir);
   }
 
-  destroy(): void {
-    this.container.destroy();
-  }
+  destroy() { this.container.destroy(); }
 
-  private registerAnimations(): void {
-    const directions: Direction[] = ["down", "left", "right", "up"];
-    const cols = 4;
-
-    for (const dir of directions) {
-      const row = this.directionRow[dir];
-      const key = `${this.textureKey}-walk-${dir}`;
-
-      if (!this.scene.anims.exists(key)) {
-        this.scene.anims.create({
-          key,
-          frames: this.scene.anims.generateFrameNumbers(this.textureKey, {
-            start: row * cols,
-            end: row * cols + cols - 1,
-          }),
-          frameRate: 8,
-          repeat: -1,
-        });
-      }
+  // ── private ──────────────────────────────────────────────────────────────
+  private registerAnims() {
+    const dirs: Direction[] = ["down", "left", "right", "up"];
+    for (const d of dirs) {
+      const k = `${this.key}-walk-${d}`;
+      if (this.scene.anims.exists(k)) continue;
+      const start = PW_DIR_OFFSET[d];
+      this.scene.anims.create({
+        key: k,
+        frames: this.scene.anims.generateFrameNumbers(this.key, {
+          start,
+          end: start + FRAMES_PER_DIR - 1,
+        }),
+        frameRate: 6,
+        repeat: -1,
+      });
     }
   }
 
-  static load(
-    scene: Phaser.Scene,
-    key: string,
-    path: string,
-    frameWidth: number,
-    frameHeight: number
-  ): void {
-    scene.load.spritesheet(key, path, { frameWidth, frameHeight });
+  // ── static loader ─────────────────────────────────────────────────────────
+  static load(scene: Phaser.Scene, key: string, path: string) {
+    scene.load.spritesheet(key, path, {
+      frameWidth:  FRAME_W,
+      frameHeight: FRAME_H,
+    });
   }
 }

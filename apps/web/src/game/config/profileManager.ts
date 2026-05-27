@@ -5,6 +5,8 @@ export interface PlayerProfile {
   displayName: string;
   pfp: string | null;
   outfitId: string;
+  /** PokeWilds trainer sprite key, e.g. "player-brendan" */
+  spriteKey: string;
   score: number;
   harvestCount: number;
   buildCount: number;
@@ -134,7 +136,7 @@ export class ProfileManager {
 
   private load(): PlayerProfile {
     const defaults: PlayerProfile = {
-      wallet: null, displayName: "Adventurer", pfp: null, outfitId: "default",
+      wallet: null, displayName: "Adventurer", pfp: null, outfitId: "default", spriteKey: "player-brendan",
       score: 0, harvestCount: 0, buildCount: 0, killCount: 0, extractCount: 0,
       unlockedOutfits: ["default"], unlockedAchievements: [], visitedNPCs: [],
       discoveredZones: [], joinedAt: Date.now(), lastActive: Date.now(),

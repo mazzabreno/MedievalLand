@@ -18,6 +18,8 @@ export interface NPCDefinition {
   portrait?: string;
 }
 
+// PokeWilds trainer sprites assigned to each NPC
+// (kept medieval-neutral — the sprites are just visual proxies for now)
 export const NPC_REGISTRY: NPCDefinition[] = [
   {
     id: "elder",
@@ -35,7 +37,7 @@ export const NPC_REGISTRY: NPCDefinition[] = [
       "And if a corpse goes uncleaned... it rises as a Skeleton.",
     ],
     action: { type: "tutor", label: "Understood!" },
-    spriteKey: "avatar-player",
+    spriteKey: "npc-gold",
   },
   {
     id: "blacksmith",
@@ -51,7 +53,7 @@ export const NPC_REGISTRY: NPCDefinition[] = [
       "My forge is open — use the Crafting Table near the Safe Zone entrance.",
     ],
     action: { type: "craft", label: "Open Crafting" },
-    spriteKey: "avatar-player",
+    spriteKey: "npc-hilbert",
   },
   {
     id: "merchant",
@@ -67,7 +69,7 @@ export const NPC_REGISTRY: NPCDefinition[] = [
       "Items in your open-world inventory are lost if you die. Always secure what matters.",
     ],
     action: { type: "vault", label: "Open Vault" },
-    spriteKey: "avatar-player",
+    spriteKey: "npc-rosa",
   },
   {
     id: "ranger",
@@ -83,7 +85,7 @@ export const NPC_REGISTRY: NPCDefinition[] = [
       "Tier 3 monsters like Ogres are a different matter. They'll tear down your walls.",
     ],
     action: { type: "tutor", label: "Thanks for the warning" },
-    spriteKey: "avatar-player",
+    spriteKey: "npc-leaf",
   },
   {
     id: "sage",
@@ -99,6 +101,26 @@ export const NPC_REGISTRY: NPCDefinition[] = [
       "Build the most, survive the longest, and claim glory before the world resets.",
     ],
     action: { type: "link", label: "MagicBlock Docs", url: "https://docs.magicblock.gg" },
-    spriteKey: "avatar-player",
+    spriteKey: "npc-lyra",
   },
 ];
+
+/** All selectable player trainer sprites (PokeWilds) */
+export const PLAYER_SPRITES = [
+  { key: "player-brendan", label: "Brendan" },
+  { key: "player-may",     label: "May"     },
+  { key: "player-gold",    label: "Gold"    },
+  { key: "player-kris",    label: "Kris"    },
+  { key: "player-hilbert", label: "Hilbert" },
+  { key: "player-hilda",   label: "Hilda"   },
+  { key: "player-calem",   label: "Calem"   },
+  { key: "player-serena",  label: "Serena"  },
+  { key: "player-victor",  label: "Victor"  },
+  { key: "player-gloria",  label: "Gloria"  },
+  { key: "player-lucas",   label: "Lucas"   },
+  { key: "player-lyra",    label: "Lyra"    },
+  { key: "player-leaf",    label: "Leaf"    },
+  { key: "player-rosa",    label: "Rosa"    },
+  { key: "player-nate",    label: "Nate"    },
+  { key: "player-mark",    label: "Mark"    },
+] as const;
