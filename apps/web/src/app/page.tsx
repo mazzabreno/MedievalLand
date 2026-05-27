@@ -16,6 +16,8 @@ const HUD                = dynamic(() => import("@/ui/HUD"),                 { s
 const WalletSignBridge   = dynamic(() => import("@/ui/WalletSignBridge"),    { ssr: false });
 const MobileControls     = dynamic(() => import("@/ui/MobileControls"),      { ssr: false });
 const ZoomControl        = dynamic(() => import("@/ui/ZoomControl"),         { ssr: false });
+const InventoryHUD       = dynamic(() => import("@/ui/InventoryHUD"),        { ssr: false });
+const BuildToolbar       = dynamic(() => import("@/ui/BuildToolbar"),        { ssr: false });
 
 import ErrorBoundary from "@/ui/ErrorBoundary";
 
@@ -107,6 +109,8 @@ export default function Home() {
           </div>
 
           <ToastStack />
+          <InventoryHUD />
+          <BuildToolbar gameRef={game} />
           <MobileControls gameRef={game} chatOpen={chatOpen} onChatToggle={() => setChatOpen((v) => !v)} />
           <ChatPanel gameRef={game} visible={chatOpen} />
           <NPCDialog npc={activeNPC} onClose={handleDialogClose} onAction={handleAction} />
