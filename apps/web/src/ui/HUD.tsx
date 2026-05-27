@@ -1,0 +1,131 @@
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import { profileManager, type PlayerProfile } from "@/game/config/profileManager";
+import { progressionBus } from "@/game/progression/progressionBus";
+
+export default function HUD() {
+  const [profile, setProfile] = useState<PlayerProfile | null>(
+    typeof window === "undefined" ? null : profileManager.get()
+  );
+  const [pulse, setPulse] = useState(0);
+  const isTouch = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+    []
+  );
+
+  useEffect(() => {
+    setProfile(profileManager.get());
+
+    const unsubProfile = progressionBus.on("profile-updated", (e) => {
+      setProfile(e.profile);
+    });
+    const unsubScore = progressionBus.on("score-gained", () => {
+      setPulse((n) => n + 1);
+    });
+
+    return () => {
+      unsubProfile();
+      unsubScore();
+    };
+  }, []);
+
+  if (!profile) return null;
+
+  if (isTouch) {
+    return (
+      <div
+        className="fixed z-20 rounded-lg px-3 py-1.5"
+        style={{
+          top: "max(env(safe-area-inset-top, 0px), 12px)",
+          left: "max(env(safe-area-inset-left, 0px), 12px)",
+          background: "rgba(10,10,30,0.80)",
+          border: "1px solid rgba(153,69,255,0.2)",
+          fontFamily: '"Press Start 2P", monospace',
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        <span
+          key={pulse}
+          className="score-value"
+          style={{ fontSize: "10px", color: "#14F195" }}
+        >
+          {profile.score.toLocaleString()}
+        </span>
+        <style jsx>{`
+          .score-value { display: inline-block; animation: scorePulse 0.6s ease-out; }
+          @keyframes scorePulse {
+            0%   { transform: scale(1);    color: #14F195; }
+            40%  { transform: scale(1.3);  color: #FFFFFF; }
+            100% { transform: scale(1);    color: #14F195; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="fixed top-4 left-4 z-20 rounded-lg px-4 py-3"
+      style={{
+        background: "rgba(10,10,30,0.85)",
+        border: "1px solid rgba(153,69,255,0.25)",
+        fontFamily: '"Fira Code", monospace',
+        backdropFilter: "blur(4px)",
+        minWidth: 180,
+      }}
+    >
+      <div className="flex items-baseline gap-2">
+        <span
+          style={{
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: "10px",
+            color: "#777788",
+            letterSpacing: "0.05em",
+          }}
+        >
+          SCORE
+        </span>
+        <span
+          key={pulse}
+          className="score-value"
+          style={{
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: "16px",
+            color: "#14F195",
+            fontWeight: "bold",
+          }}
+        >
+          {profile.score.toLocaleString()}
+        </span>
+      </div>
+
+      <div className="flex gap-3 mt-2" style={{ fontSize: "10px", color: "#aaaacc" }}>
+        <Counter label="harvest" value={profile.harvestCount} color="#14F195" />
+        <Counter label="builds"  value={profile.buildCount}   color="#FF6B35" />
+        <Counter label="kills"   value={profile.killCount}    color="#9945FF" />
+      </div>
+
+      <style jsx>{`
+        .score-value {
+          display: inline-block;
+          animation: scorePulse 0.6s ease-out;
+        }
+        @keyframes scorePulse {
+          0%   { transform: scale(1);    color: #14F195; }
+          40%  { transform: scale(1.25); color: #FFFFFF; }
+          100% { transform: scale(1);    color: #14F195; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Counter({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <span>
+      <span style={{ color }}>{value}</span>
+      <span style={{ color: "#555566", marginLeft: 3 }}>{label}</span>
+    </span>
+  );
+}
