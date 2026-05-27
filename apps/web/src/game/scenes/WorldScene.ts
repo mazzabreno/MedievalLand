@@ -539,9 +539,7 @@ export class WorldScene extends Phaser.Scene {
       this.placeNodes(positions.rocks,   "tile-rock",       "STONE", [2, 4], 1.6);
       this.placeNodes(positions.bushes,  "tile-bush",       "FIBER", [1, 3], 1.4);
 
-      // Tall grass overlay (forest + meadow feel)
-      this.placeTallGrass(positions.trees,  1.0);
-      this.placeTallGrass(positions.bushes, 0.9);
+      // tall grass disabled — tile-grass-tall renders as solid block
 
       // Decorative flowers (no collection)
       for (const p of positions.flowers) {

@@ -67,7 +67,7 @@ function fbm(x: number, y: number, oct: number, seed = 0): number {
 
 // ── Biome definition ──────────────────────────────────────────────────────────
 
-const enum Biome { FOREST, PLAINS, MEADOW, ROCKY }
+enum Biome { FOREST, PLAINS, MEADOW, ROCKY }
 
 // ── Main class ────────────────────────────────────────────────────────────────
 
