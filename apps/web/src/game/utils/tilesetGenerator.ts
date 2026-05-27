@@ -349,38 +349,50 @@ export function rebuildTilesetWithPokeWildsAssets(scene: Phaser.Scene): void {
     key: string,
     fallbackKey?: string,
     tintColor?: [number, number, number],
-    tintAlpha = 0.25,
+    tintAlpha = 0.28,
   ): void {
-    const useKey = scene.textures.exists(key) ? key : (fallbackKey && scene.textures.exists(fallbackKey) ? fallbackKey : null);
+    const useKey = scene.textures.exists(key) ? key
+                 : (fallbackKey && scene.textures.exists(fallbackKey) ? fallbackKey : null);
     if (!useKey) return;
     const src = (scene.textures.get(useKey) as any).source[0].image as HTMLImageElement;
     const y = idx * T;
     ctx.drawImage(src, 0, y, T, T);
 
-    // Optional colour tint via "multiply-like" overlay
+    // Predictable semi-transparent colour overlay (source-over)
     if (tintColor) {
       ctx.save();
-      ctx.globalCompositeOperation = "multiply";
-      ctx.globalAlpha = tintAlpha;
-      ctx.fillStyle = `rgb(${tintColor[0]},${tintColor[1]},${tintColor[2]})`;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = `rgba(${tintColor[0]},${tintColor[1]},${tintColor[2]},${tintAlpha})`;
       ctx.fillRect(0, y, T, T);
       ctx.restore();
     }
   }
 
-  // Map each TILE_IDX slot to a PokeWilds asset
-  slot(TILE_IDX.FOREST_GRASS,  "tile-ground1");
+  // ── Map each TILE_IDX slot to a PokeWilds asset ───────────────────────────────
+  // FOREST biome — use the alternate green tile with a dark shadowy overlay
+  slot(TILE_IDX.FOREST_GRASS,  "tile-green1",   "tile-ground1",  [ 18,  40,  10], 0.45);
+  // Normal open grass — no overlay, pure ground1
   slot(TILE_IDX.NORMAL_GRASS,  "tile-ground1");
-  slot(TILE_IDX.LIGHT_GRASS,   "tile-ground2",  "tile-ground1",  [200, 240, 160], 0.15);
-  slot(TILE_IDX.DRY_GRASS,     "tile-desert",   "tile-ground2",  [220, 200, 130], 0.3);
+  // Meadow — slightly lighter, sunny tint
+  slot(TILE_IDX.LIGHT_GRASS,   "tile-ground2",  "tile-ground1",  [180, 240, 130], 0.18);
+  // Rocky biome dry scrub — desert tile, warm yellow-brown tint
+  slot(TILE_IDX.DRY_GRASS,     "tile-desert",   "tile-ground2",  [200, 175,  90], 0.32);
+  // Path
   slot(TILE_IDX.DIRT_PATH,     "tile-path",     "tile-ground2");
-  slot(TILE_IDX.DIRT_EDGE,     "tile-path",     "tile-ground1",  undefined);
+  // Path edge / grass-dirt transition — use shore autotile for soft blend
+  slot(TILE_IDX.DIRT_EDGE,     "tile-shore",    "tile-path");
+  // Deep water
   slot(TILE_IDX.WATER_DEEP,    "tile-water");
-  slot(TILE_IDX.WATER_SHALLOW, "tile-water",    undefined,       [160, 220, 255], 0.2);
-  slot(TILE_IDX.SAND,          "tile-sand",     "tile-ground2",  [220, 200, 140], 0.25);
-  slot(TILE_IDX.STONE,         "tile-mountain", "tile-ground2",  [180, 170, 160], 0.2);
-  slot(TILE_IDX.SAFE_ZONE,     "tile-ground2",  "tile-ground1",  [120, 255, 120], 0.2);
-  slot(TILE_IDX.FOREST_FLOOR,  "tile-green1",   "tile-ground1",  [ 80, 100,  60], 0.3);
+  // Shallow water — lighter blue overlay
+  slot(TILE_IDX.WATER_SHALLOW, "tile-water",    undefined,        [140, 210, 255], 0.22);
+  // Sand / shore
+  slot(TILE_IDX.SAND,          "tile-sand",     "tile-ground2",   [210, 190, 120], 0.20);
+  // Stone / mountain floor
+  slot(TILE_IDX.STONE,         "tile-mountain", "tile-ground2",   [160, 155, 150], 0.22);
+  // Safe zone — bright welcoming green
+  slot(TILE_IDX.SAFE_ZONE,     "tile-ground2",  "tile-ground1",   [100, 255,  90], 0.28);
+  // Deep forest floor — dark mulch, very shadowed
+  slot(TILE_IDX.FOREST_FLOOR,  "tile-ground1",  undefined,        [ 12,  28,   6], 0.58);
 
   scene.textures.addCanvas("tileset-overworld", canvas);
   console.info("[tileset] rebuilt from PokeWilds assets ✓");

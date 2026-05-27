@@ -18,11 +18,12 @@ export interface Inventory {
 }
 
 interface ResourceNode {
-  sprite: Phaser.GameObjects.Image;
-  label:  Phaser.GameObjects.Text;
-  resource: ResourceType;
-  amount: number;   // max yield
-  depleted: boolean;
+  sprite:    Phaser.GameObjects.Image;
+  overSprite?: Phaser.GameObjects.Image;  // top half of 2-tile trees
+  label:     Phaser.GameObjects.Text;
+  resource:  ResourceType;
+  amount:    number;   // max yield
+  depleted:  boolean;
 }
 
 interface PlacedStructure {
@@ -416,11 +417,17 @@ export class WorldScene extends Phaser.Scene {
     this.tweens.add({ targets: popup, y: popup.y - 32, alpha: 0, duration: 1100,
       onComplete: () => popup.destroy() });
 
-    // Deplete & schedule respawn
+    // Deplete & animate out
     node.depleted = true;
     node.label.destroy();
-    this.tweens.add({ targets: node.sprite, alpha: 0, scaleX: 0.1, scaleY: 0.1,
-      duration: 400, onComplete: () => node.sprite.destroy() });
+    const stumpTargets: Phaser.GameObjects.Image[] = [node.sprite];
+    if (node.overSprite) stumpTargets.push(node.overSprite);
+    this.tweens.add({
+      targets: stumpTargets,
+      alpha: 0, scaleX: 0.1, scaleY: 0.1,
+      duration: 400,
+      onComplete: () => { node.sprite.destroy(); node.overSprite?.destroy(); },
+    });
 
     // Remove from list after 30s
     this.time.delayedCall(30_000, () => {
@@ -454,11 +461,9 @@ export class WorldScene extends Phaser.Scene {
       const inRange = d < COLLECT_RANGE;
       node.label.setVisible(inRange);
       // Highlight active gather target
-      if (node === this.gatherTarget) {
-        node.sprite.setTint(0xffffff);
-      } else {
-        node.sprite.setTint(inRange ? 0xffffff : 0xbbbbbb);
-      }
+      const tint = node === this.gatherTarget ? 0xffffaa : (inRange ? 0xffffff : 0xdddddd);
+      node.sprite.setTint(tint);
+      node.overSprite?.setTint(tint);
     }
   }
 
@@ -529,20 +534,25 @@ export class WorldScene extends Phaser.Scene {
 
     if (positions) {
       // Biome-aware placement from WorldGenerator
-      this.placeNodes(positions.trees,   "tile-tree",       "WOOD",  [2,4], 1.8);
-      this.placeNodes(positions.larges,  "tile-tree-large", "WOOD",  [3,6], 2.0);
-      this.placeNodes(positions.rocks,   "tile-rock",       "STONE", [2,4], 1.6);
-      this.placeNodes(positions.bushes,  "tile-bush",       "FIBER", [1,3], 1.4);
+      this.placeNodes(positions.trees,   "tile-tree",       "WOOD",  [2, 4], 1.0);
+      this.placeNodes(positions.larges,  "tile-tree-large", "WOOD",  [3, 6], 1.0);
+      this.placeNodes(positions.rocks,   "tile-rock",       "STONE", [2, 4], 1.6);
+      this.placeNodes(positions.bushes,  "tile-bush",       "FIBER", [1, 3], 1.4);
 
-      // Decorative (no collection)
+      // Tall grass overlay (forest + meadow feel)
+      this.placeTallGrass(positions.trees,  1.0);
+      this.placeTallGrass(positions.bushes, 0.9);
+
+      // Decorative flowers (no collection)
       for (const p of positions.flowers) {
         const key = rng.frac() < 0.5 ? "tile-flower" : "tile-flower2";
         if (this.textures.exists(key))
           this.add.image(p.x, p.y, key).setScale(1.0).setDepth(p.y);
       }
+      // Torches at safe-zone corners
       for (const p of positions.torches) {
         if (this.textures.exists("tile-torch"))
-          this.add.image(p.x, p.y, "tile-torch").setScale(1.4).setDepth(p.y);
+          this.add.image(p.x, p.y, "tile-torch").setScale(1.2).setDepth(p.y);
       }
       return;
     }
@@ -576,10 +586,10 @@ export class WorldScene extends Phaser.Scene {
       }
     };
 
-    spread("tile-tree",       "WOOD",  [2,4], 1.8, 100);
-    spread("tile-tree-large", "WOOD",  [3,6], 2.0, 30);
-    spread("tile-rock",       "STONE", [2,4], 1.6, 60);
-    spread("tile-bush",       "FIBER", [1,3], 1.4, 50);
+    spread("tile-tree",       "WOOD",  [2,4], 1.0, 100);
+    spread("tile-tree-large", "WOOD",  [3,6], 1.0,  30);
+    spread("tile-rock",       "STONE", [2,4], 1.6,  60);
+    spread("tile-bush",       "FIBER", [1,3], 1.4,  50);
 
     const decorKeys: [string, number][] = [
       ["tile-flower",  100], ["tile-flower2", 80], ["tile-grass-short", 120],
@@ -594,7 +604,9 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** Place resource-node sprites from a pre-computed position list */
+  /** Place resource-node sprites from a pre-computed position list.
+   *  For WOOD nodes, uses two-tile trees (under + over) when PokeWilds assets exist.
+   */
   private placeNodes(
     positions: Array<{x: number; y: number}>,
     textureKey: string,
@@ -602,17 +614,52 @@ export class WorldScene extends Phaser.Scene {
     amountRange: [number, number],
     scale: number,
   ): void {
-    if (!this.textures.exists(textureKey)) return;
     const rng = Phaser.Math.RND;
+    const T   = TILE_SIZE;
+
+    // Two-tile tree rendering: under=trunk/base, over=canopy (one tile above)
+    const useTwoTile = resource === "WOOD"
+      && this.textures.exists("tile-tree-under")
+      && this.textures.exists("tile-tree-over");
+
+    if (!useTwoTile && !this.textures.exists(textureKey)) return;
+
     for (const { x, y } of positions) {
-      const sprite = this.add.image(x, y, textureKey)
-        .setScale(scale).setTint(0xbbbbbb).setDepth(y);
-      const label  = this.add.text(x, y - scale * 10, `[E] ${resource}`, {
+      let sprite: Phaser.GameObjects.Image;
+      let overSprite: Phaser.GameObjects.Image | undefined;
+
+      if (useTwoTile) {
+        // Under part: at foot position, depth sorts with player
+        sprite = this.add.image(x, y, "tile-tree-under")
+          .setScale(scale).setDepth(y);
+        // Over part: one tile above, same Y-sort depth as its world-Y
+        const overY = y - T * scale;
+        overSprite = this.add.image(x, overY, "tile-tree-over")
+          .setScale(scale).setDepth(overY);
+      } else {
+        sprite = this.add.image(x, y, textureKey)
+          .setScale(scale).setTint(0xdddddd).setDepth(y);
+      }
+
+      const labelY = useTwoTile ? y - T * scale * 1.8 : y - scale * 10;
+      const label = this.add.text(x, labelY, `[E] ${resource}`, {
         fontSize: "7px", fontFamily: "monospace",
         color: "#ffffff", stroke: "#000000", strokeThickness: 2, resolution: 2,
       }).setOrigin(0.5, 1).setDepth(y + 1).setVisible(false);
+
       const amount = rng.between(amountRange[0], amountRange[1]);
-      this.resourceNodes.push({ sprite, label, resource, amount, depleted: false });
+      this.resourceNodes.push({ sprite, overSprite, label, resource, amount, depleted: false });
+    }
+  }
+
+  /** Scatter decorative tall-grass sprites from a position list */
+  private placeTallGrass(positions: Array<{x: number; y: number}>, scale = 1.0): void {
+    if (!this.textures.exists("tile-grass-tall")) return;
+    const rng = Phaser.Math.RND;
+    for (const { x, y } of positions) {
+      if (rng.frac() > 0.35) continue; // only 35% of eligible tiles get tall grass
+      this.add.image(x, y, "tile-grass-tall")
+        .setScale(scale).setDepth(y + 0.5).setAlpha(0.85);
     }
   }
 
