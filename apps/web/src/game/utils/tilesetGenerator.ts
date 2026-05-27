@@ -321,6 +321,71 @@ export function generateMedievalTileset(scene: Phaser.Scene): void {
   scene.textures.addCanvas("tileset-overworld", canvas);
 }
 
+// ── PokeWilds tileset compositing ─────────────────────────────────────────────
+
+/**
+ * If real PokeWilds ground tiles were loaded (tile-ground1 / tile-path / tile-water),
+ * replace "tileset-overworld" with a composited version using those authentic assets.
+ * Each slot is scaled to TILE_SIZE×TILE_SIZE with nearest-neighbour (crisp pixel art).
+ */
+export function rebuildTilesetWithPokeWildsAssets(scene: Phaser.Scene): void {
+  // Need at least the base grass tile
+  if (!scene.textures.exists("tile-ground1")) return;
+
+  // Rebuild over the existing tileset
+  if (scene.textures.exists("tileset-overworld")) {
+    scene.textures.remove("tileset-overworld");
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width  = T;
+  canvas.height = T * NUM_TILESET_TILES;
+  const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;   // crisp pixel-art scaling
+
+  /** Draw a PokeWilds image into a tileset slot (scaled to T×T). */
+  function slot(
+    idx: number,
+    key: string,
+    fallbackKey?: string,
+    tintColor?: [number, number, number],
+    tintAlpha = 0.25,
+  ): void {
+    const useKey = scene.textures.exists(key) ? key : (fallbackKey && scene.textures.exists(fallbackKey) ? fallbackKey : null);
+    if (!useKey) return;
+    const src = (scene.textures.get(useKey) as any).source[0].image as HTMLImageElement;
+    const y = idx * T;
+    ctx.drawImage(src, 0, y, T, T);
+
+    // Optional colour tint via "multiply-like" overlay
+    if (tintColor) {
+      ctx.save();
+      ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = tintAlpha;
+      ctx.fillStyle = `rgb(${tintColor[0]},${tintColor[1]},${tintColor[2]})`;
+      ctx.fillRect(0, y, T, T);
+      ctx.restore();
+    }
+  }
+
+  // Map each TILE_IDX slot to a PokeWilds asset
+  slot(TILE_IDX.FOREST_GRASS,  "tile-ground1");
+  slot(TILE_IDX.NORMAL_GRASS,  "tile-ground1");
+  slot(TILE_IDX.LIGHT_GRASS,   "tile-ground2",  "tile-ground1",  [200, 240, 160], 0.15);
+  slot(TILE_IDX.DRY_GRASS,     "tile-desert",   "tile-ground2",  [220, 200, 130], 0.3);
+  slot(TILE_IDX.DIRT_PATH,     "tile-path",     "tile-ground2");
+  slot(TILE_IDX.DIRT_EDGE,     "tile-path",     "tile-ground1",  undefined);
+  slot(TILE_IDX.WATER_DEEP,    "tile-water");
+  slot(TILE_IDX.WATER_SHALLOW, "tile-water",    undefined,       [160, 220, 255], 0.2);
+  slot(TILE_IDX.SAND,          "tile-sand",     "tile-ground2",  [220, 200, 140], 0.25);
+  slot(TILE_IDX.STONE,         "tile-mountain", "tile-ground2",  [180, 170, 160], 0.2);
+  slot(TILE_IDX.SAFE_ZONE,     "tile-ground2",  "tile-ground1",  [120, 255, 120], 0.2);
+  slot(TILE_IDX.FOREST_FLOOR,  "tile-green1",   "tile-ground1",  [ 80, 100,  60], 0.3);
+
+  scene.textures.addCanvas("tileset-overworld", canvas);
+  console.info("[tileset] rebuilt from PokeWilds assets ✓");
+}
+
 // ── Fallback tile images ───────────────────────────────────────────────────────
 
 /**
