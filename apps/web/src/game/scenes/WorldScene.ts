@@ -18,12 +18,15 @@ export interface Inventory {
 }
 
 interface ResourceNode {
-  sprite:    Phaser.GameObjects.Image;
+  sprite:      Phaser.GameObjects.Image;
   overSprite?: Phaser.GameObjects.Image;  // top half of 2-tile trees
-  label:     Phaser.GameObjects.Text;
-  resource:  ResourceType;
-  amount:    number;   // max yield
-  depleted:  boolean;
+  label:       Phaser.GameObjects.Text;
+  resource:    ResourceType;
+  amount:      number;   // max yield per harvest
+  depleted:    boolean;
+  scale:       number;   // original display scale (needed for respawn)
+  isTwoTile:   boolean;  // whether this uses the under/over sprite pair
+  defaultTint: number;   // tint to restore when out-of-range
 }
 
 interface PlacedStructure {
@@ -420,22 +423,27 @@ export class WorldScene extends Phaser.Scene {
     this.tweens.add({ targets: popup, y: popup.y - 32, alpha: 0, duration: 1100,
       onComplete: () => popup.destroy() });
 
-    // Deplete & animate out
+    // Deplete — fade to ghost (DON'T destroy; will respawn)
     node.depleted = true;
-    node.label.destroy();
+    node.label.setVisible(false);
     const stumpTargets: Phaser.GameObjects.Image[] = [node.sprite];
     if (node.overSprite) stumpTargets.push(node.overSprite);
     this.tweens.add({
       targets: stumpTargets,
-      alpha: 0, scaleX: 0.1, scaleY: 0.1,
+      alpha: 0.08, scaleX: node.scale * 0.3, scaleY: node.scale * 0.3,
       duration: 400,
-      onComplete: () => { node.sprite.destroy(); node.overSprite?.destroy(); },
     });
 
-    // Remove from list after 30s
-    this.time.delayedCall(30_000, () => {
-      const idx = this.resourceNodes.indexOf(node);
-      if (idx !== -1) this.resourceNodes.splice(idx, 1);
+    // Respawn after ~45s: fade back in and mark available
+    const RESPAWN_MS = 45_000;
+    this.time.delayedCall(RESPAWN_MS, () => {
+      if (!node.sprite.active) return;
+      node.depleted = false;
+      this.tweens.add({
+        targets: stumpTargets,
+        alpha: 1, scaleX: node.scale, scaleY: node.scale,
+        duration: 700,
+      });
     });
 
     this.emitInventory();
@@ -465,8 +473,12 @@ export class WorldScene extends Phaser.Scene {
       node.label.setVisible(inRange);
       // Highlight active gather target
       const tint = node === this.gatherTarget ? 0xffffaa : (inRange ? 0xffffff : 0xdddddd);
-      node.sprite.setTint(tint);
-      node.overSprite?.setTint(tint);
+      // Use defaultTint when out of range so berry nodes keep their red colour
+      const resolvedTint = node === this.gatherTarget ? 0xffffaa
+                         : inRange ? 0xffffff
+                         : node.defaultTint;
+      node.sprite.setTint(resolvedTint);
+      node.overSprite?.setTint(resolvedTint);
     }
   }
 
@@ -481,6 +493,12 @@ export class WorldScene extends Phaser.Scene {
         this.chat.addSystemMessage(`Not enough ${ing.resource} (need ${ing.amount})`);
         return;
       }
+    }
+
+    // ── Crafting-table check ─────────────────────────────────────────────────
+    if (recipe.requiresCraftingTable && !this.isNearCraftingTable()) {
+      this.chat.addSystemMessage(`Need a Crafting Table nearby to craft ${recipeOutput}`);
+      return;
     }
 
     // ── Tools: craft immediately into inventory ──────────────────────────────
@@ -518,6 +536,18 @@ export class WorldScene extends Phaser.Scene {
   private exitBuildMode(): void {
     if (this.buildPreview) { this.buildPreview.destroy(); this.buildPreview = null; }
     if (this.buildMode)    { this.buildMode = null; this.game.events.emit("build:mode", { active: false }); }
+  }
+
+  /** True if the player is within 3 tiles of a placed Crafting Table */
+  private isNearCraftingTable(): boolean {
+    const range = TILE_SIZE * 3;
+    return this.placedStructures.some(s =>
+      s.type === "CRAFTING_TABLE" &&
+      Phaser.Math.Distance.Between(
+        this.avatar.x, this.avatar.y,
+        s.sprite.x, s.sprite.y,
+      ) < range
+    );
   }
 
   private tryPlaceStructure(wx: number, wy: number): void {
@@ -565,6 +595,9 @@ export class WorldScene extends Phaser.Scene {
       this.placeNodes(positions.larges,  "tile-tree-large", "WOOD",  [3, 6], 1.0);
       this.placeNodes(positions.rocks,   "tile-rock",       "STONE", [2, 4], 1.6);
       this.placeNodes(positions.bushes,  "tile-bush",       "FIBER", [1, 3], 1.4);
+      // Berry bushes (FOOD) — use every 3rd bush position with red tint
+      const berryPositions = positions.bushes.filter((_, i) => i % 3 === 2);
+      this.placeBerryNodes(berryPositions);
 
       // tall grass disabled — tile-grass-tall renders as solid block
 
@@ -606,8 +639,12 @@ export class WorldScene extends Phaser.Scene {
           fontSize: "7px", fontFamily: "monospace",
           color: "#ffffff", stroke: "#000000", strokeThickness: 2, resolution: 2,
         }).setOrigin(0.5, 1).setDepth(y + 1).setVisible(false);
-        this.resourceNodes.push({ sprite, label, resource: res,
-          amount: rng.between(amt[0], amt[1]), depleted: false });
+        this.resourceNodes.push({
+          sprite, label, resource: res,
+          amount: rng.between(amt[0], amt[1]),
+          depleted: false, scale, isTwoTile: false,
+          defaultTint: 0xbbbbbb,
+        });
       }
     };
 
@@ -615,6 +652,30 @@ export class WorldScene extends Phaser.Scene {
     spread("tile-tree-large", "WOOD",  [3,6], 1.0,  30);
     spread("tile-rock",       "STONE", [2,4], 1.6,  60);
     spread("tile-bush",       "FIBER", [1,3], 1.4,  50);
+    // Berry bushes for FOOD (same bush sprite, red tint, fewer nodes)
+    if (this.textures.exists("tile-bush")) {
+      const bScale = 1.2;
+      for (let i = 0; i < 30; i++) {
+        let x = 0, y = 0, tries = 0;
+        do {
+          x = rng.between(T * 4, mapWidth  - T * 4);
+          y = rng.between(T * 4, mapHeight - T * 4);
+          tries++;
+        } while (tries < 20 && avoidSafe(x, y));
+        const sprite = this.add.image(x, y, "tile-bush")
+          .setScale(bScale).setTint(0xff6633).setDepth(y);
+        const label  = this.add.text(x, y - bScale * 10, "[E] FOOD", {
+          fontSize: "7px", fontFamily: "monospace",
+          color: "#ff8844", stroke: "#000000", strokeThickness: 2, resolution: 2,
+        }).setOrigin(0.5, 1).setDepth(y + 1).setVisible(false);
+        this.resourceNodes.push({
+          sprite, label, resource: "FOOD",
+          amount: rng.between(1, 3),
+          depleted: false, scale: bScale, isTwoTile: false,
+          defaultTint: 0xff6633,
+        });
+      }
+    }
 
     const decorKeys: [string, number][] = [
       ["tile-flower",  100], ["tile-flower2", 80], ["tile-grass-short", 120],
@@ -673,7 +734,32 @@ export class WorldScene extends Phaser.Scene {
       }).setOrigin(0.5, 1).setDepth(y + 1).setVisible(false);
 
       const amount = rng.between(amountRange[0], amountRange[1]);
-      this.resourceNodes.push({ sprite, overSprite, label, resource, amount, depleted: false });
+      this.resourceNodes.push({
+        sprite, overSprite, label, resource, amount,
+        depleted: false, scale, isTwoTile: useTwoTile,
+        defaultTint: useTwoTile ? 0xffffff : 0xdddddd,
+      });
+    }
+  }
+
+  /** Place berry-bush FOOD nodes (same sprite as bush, warm red tint) */
+  private placeBerryNodes(positions: Array<{x: number; y: number}>): void {
+    if (!this.textures.exists("tile-bush")) return;
+    const rng   = Phaser.Math.RND;
+    const scale = 1.2;
+    for (const { x, y } of positions) {
+      const sprite = this.add.image(x, y, "tile-bush")
+        .setScale(scale).setTint(0xff6633).setDepth(y);
+      const label = this.add.text(x, y - scale * 10, "[E] FOOD", {
+        fontSize: "7px", fontFamily: "monospace",
+        color: "#ff8844", stroke: "#000000", strokeThickness: 2, resolution: 2,
+      }).setOrigin(0.5, 1).setDepth(y + 1).setVisible(false);
+      this.resourceNodes.push({
+        sprite, label, resource: "FOOD",
+        amount: rng.between(1, 3),
+        depleted: false, scale, isTwoTile: false,
+        defaultTint: 0xff6633,
+      });
     }
   }
 
