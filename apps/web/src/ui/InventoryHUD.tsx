@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 interface Inventory {
   WOOD: number; STONE: number; FIBER: number; FOOD: number;
   AXE: number; PICKAXE: number; SHOVEL: number; SWORD: number; BOW: number;
+  stamina: number; maxStamina: number; inSafeZone: boolean;
 }
 
 type ResourceKey = "WOOD" | "STONE" | "FIBER" | "FOOD";
@@ -24,7 +25,11 @@ const TOOL_COLOR = "#ffd700";
 const RESOURCE_KEYS: ResourceKey[] = ["WOOD", "STONE", "FIBER", "FOOD"];
 const TOOL_KEYS: ToolKey[]         = ["AXE", "PICKAXE", "SHOVEL", "SWORD", "BOW"];
 
-const EMPTY: Inventory = { WOOD: 0, STONE: 0, FIBER: 0, FOOD: 0, AXE: 0, PICKAXE: 0, SHOVEL: 0, SWORD: 0, BOW: 0 };
+const EMPTY: Inventory = {
+  WOOD: 0, STONE: 0, FIBER: 0, FOOD: 0,
+  AXE: 0, PICKAXE: 0, SHOVEL: 0, SWORD: 0, BOW: 0,
+  stamina: 200, maxStamina: 200, inSafeZone: true,
+};
 
 export default function InventoryHUD() {
   const [inv, setInv] = useState<Inventory>(EMPTY);
@@ -36,8 +41,11 @@ export default function InventoryHUD() {
     return () => window.removeEventListener("medieval-land:inventory", handler);
   }, []);
 
-  const ownedTools = TOOL_KEYS.filter(k => inv[k] > 0);
-  const hasAny = RESOURCE_KEYS.some(k => inv[k] > 0) || ownedTools.length > 0;
+  const ownedTools  = TOOL_KEYS.filter(k => inv[k] > 0);
+  const hasAny      = RESOURCE_KEYS.some(k => inv[k] > 0) || ownedTools.length > 0;
+  const staminaPct  = Math.max(0, Math.min(100, (inv.stamina / inv.maxStamina) * 100));
+  const staminaLow  = staminaPct < 25;
+  const staminaColor = inv.inSafeZone ? "#14F195" : (staminaLow ? "#ff4444" : "#ffd700");
 
   return (
     <div
@@ -79,6 +87,37 @@ export default function InventoryHUD() {
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Stamina bar */}
+      <div style={{
+        width: "100%", maxWidth: 280,
+        background: "rgba(10,10,30,0.88)",
+        border: `1px solid ${staminaColor}44`,
+        borderRadius: 6,
+        padding: "4px 8px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}>
+        <span style={{ fontSize: 8, color: staminaColor, minWidth: 14 }}>ST</span>
+        <div style={{
+          flex: 1, height: 6, background: "rgba(255,255,255,0.08)",
+          borderRadius: 3, overflow: "hidden",
+        }}>
+          <div style={{
+            width: `${staminaPct}%`, height: "100%",
+            background: staminaColor,
+            borderRadius: 3,
+            transition: "width 0.3s ease, background 0.3s",
+          }} />
+        </div>
+        <span style={{ fontSize: 7, color: staminaColor, minWidth: 28, textAlign: "right" }}>
+          {inv.stamina}/{inv.maxStamina}
+        </span>
+        {inv.inSafeZone && (
+          <span style={{ fontSize: 7, color: "#14F195", opacity: 0.7 }}>⚡</span>
+        )}
       </div>
 
       {/* Tools row — only visible when player owns at least one tool */}

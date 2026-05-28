@@ -8,7 +8,7 @@ import { ProfileManager, profileManager } from "../config/profileManager";
 import { AchievementEngine } from "../progression/achievementEngine";
 import { setupEmojiKeys, showEmoji, type EmojiDef } from "../chat/EmojiSystem";
 import { WorldGenerator, type NodePositions } from "../systems/WorldGenerator";
-import { CRAFTING_RECIPES } from "../types";
+import { CRAFTING_RECIPES, STAMINA_COSTS, BASE_STAMINA } from "../types";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 export type ResourceType = "WOOD" | "STONE" | "FIBER" | "FOOD";
@@ -87,6 +87,12 @@ export class WorldScene extends Phaser.Scene {
   private nameLabels    = new Map<string, Phaser.GameObjects.Text>();
   private activeBubbles = new Map<string, ChatBubble>();
   private profile!: ProfileManager;
+
+  // ── Stamina ────────────────────────────────────────────────────────────────
+  private stamina    = BASE_STAMINA;
+  private maxStamina = BASE_STAMINA;
+  /** Accumulated ms since last stamina regen tick */
+  private staminaRegenAccumMs = 0;
 
   // ── Resources / building ───────────────────────────────────────────────────
   private inventory: Inventory = {
@@ -323,6 +329,9 @@ export class WorldScene extends Phaser.Scene {
     // Update gathering progress
     if (this.gatherTarget) this.tickGather(delta);
 
+    // Stamina regeneration: faster in safe zone (1/s) vs normal (1/2s)
+    this.tickStamina(delta);
+
     // Update node proximity highlights
     this.updateNodeHighlights();
 
@@ -354,8 +363,15 @@ export class WorldScene extends Phaser.Scene {
     }
     if (!nearest) return;
 
-    this.gatherTarget    = nearest;
-    this.gatherProgress  = 0;
+    // Stamina cost: CHOP for wood, MINE for stone, PICK_UP for others
+    const staminaCost =
+      nearest.resource === "WOOD"  ? STAMINA_COSTS.CHOP :
+      nearest.resource === "STONE" ? STAMINA_COSTS.MINE :
+      STAMINA_COSTS.PICK_UP;
+    if (!this.spendStamina(staminaCost)) return;
+
+    this.gatherTarget     = nearest;
+    this.gatherProgress   = 0;
     this.gatherDurationMs = this.gatherDuration(nearest.resource);
 
     this.chat.addSystemMessage(`Gathering ${nearest.resource}…`);
@@ -465,6 +481,41 @@ export class WorldScene extends Phaser.Scene {
     this.gatherText?.setText("");
   }
 
+  // ── Stamina helpers ───────────────────────────────────────────────────────
+
+  private isInSafeZone(): boolean {
+    const T  = TILE_SIZE;
+    const px = this.avatar.x, py = this.avatar.y;
+    return SAFE_ZONES.some(sz =>
+      px >= sz.col * T && px < (sz.col + sz.w) * T &&
+      py >= sz.row * T && py < (sz.row + sz.h) * T
+    );
+  }
+
+  private tickStamina(delta: number): void {
+    if (this.stamina >= this.maxStamina) return;
+    // 2 pts/s in safe zone, 0.5 pts/s elsewhere
+    const rate = this.isInSafeZone() ? 2.0 : 0.5;
+    this.staminaRegenAccumMs += delta;
+    const tickMs = 1000 / rate;
+    if (this.staminaRegenAccumMs >= tickMs) {
+      const ticks = Math.floor(this.staminaRegenAccumMs / tickMs);
+      this.staminaRegenAccumMs %= tickMs;
+      this.stamina = Math.min(this.maxStamina, this.stamina + ticks);
+      this.emitInventory(); // broadcast updated stamina
+    }
+  }
+
+  private spendStamina(cost: number): boolean {
+    if (this.stamina < cost) {
+      this.chat.addSystemMessage(`Too tired — need ${cost} stamina`);
+      return false;
+    }
+    this.stamina -= cost;
+    this.emitInventory();
+    return true;
+  }
+
   // ── Node proximity highlights ─────────────────────────────────────────────
   private updateNodeHighlights(): void {
     const px = this.avatar.x, py = this.avatar.y;
@@ -561,6 +612,9 @@ export class WorldScene extends Phaser.Scene {
         this.chat.addSystemMessage(`Not enough ${ing.resource}`); return;
       }
     }
+    // Stamina cost for placing
+    if (!this.spendStamina(STAMINA_COSTS.PLACE_STRUCTURE)) return;
+
     for (const ing of recipe.ingredients)
       this.inventory[ing.resource as ResourceType] -= ing.amount;
 
@@ -780,15 +834,18 @@ export class WorldScene extends Phaser.Scene {
   private emitInventory(): void {
     window.dispatchEvent(new CustomEvent("medieval-land:inventory", {
       detail: {
-        WOOD:    this.inventory.WOOD,
-        STONE:   this.inventory.STONE,
-        FIBER:   this.inventory.FIBER,
-        FOOD:    this.inventory.FOOD,
-        AXE:     this.inventory.AXE,
-        PICKAXE: this.inventory.PICKAXE,
-        SHOVEL:  this.inventory.SHOVEL,
-        SWORD:   this.inventory.SWORD,
-        BOW:     this.inventory.BOW,
+        WOOD:        this.inventory.WOOD,
+        STONE:       this.inventory.STONE,
+        FIBER:       this.inventory.FIBER,
+        FOOD:        this.inventory.FOOD,
+        AXE:         this.inventory.AXE,
+        PICKAXE:     this.inventory.PICKAXE,
+        SHOVEL:      this.inventory.SHOVEL,
+        SWORD:       this.inventory.SWORD,
+        BOW:         this.inventory.BOW,
+        stamina:     this.stamina,
+        maxStamina:  this.maxStamina,
+        inSafeZone:  this.isInSafeZone(),
       },
     }));
     const available = CRAFTING_RECIPES.filter(r =>
