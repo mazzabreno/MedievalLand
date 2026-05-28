@@ -324,16 +324,21 @@ export function generateMedievalTileset(scene: Phaser.Scene): void {
 // ── PokeWilds tileset compositing ─────────────────────────────────────────────
 
 /**
- * If real PokeWilds ground tiles were loaded (tile-ground1 / tile-path / tile-water),
- * replace "tileset-overworld" with a composited version using those authentic assets.
- * Each slot is scaled to TILE_SIZE×TILE_SIZE with nearest-neighbour (crisp pixel art).
+ * If real PokeWilds ground tiles were loaded, composite them over the
+ * pixel-art "tileset-overworld".  Slots where no PokeWilds image is available
+ * keep their pixel-art fallback (water, stone, etc. are never wiped to black).
  */
 export function rebuildTilesetWithPokeWildsAssets(scene: Phaser.Scene): void {
   // Need at least the base grass tile
   if (!scene.textures.exists("tile-ground1")) return;
 
-  // Rebuild over the existing tileset
+  // ── Start from the existing pixel-art canvas as a base ──────────────────────
+  // This ensures tiles that have no PokeWilds equivalent (water, mountain, etc.)
+  // still show their hand-drawn versions rather than going transparent/black.
+  let existingCanvas: HTMLCanvasElement | null = null;
   if (scene.textures.exists("tileset-overworld")) {
+    const src = (scene.textures.get("tileset-overworld") as any).source[0].image;
+    if (src instanceof HTMLCanvasElement) existingCanvas = src;
     scene.textures.remove("tileset-overworld");
   }
 
@@ -341,9 +346,14 @@ export function rebuildTilesetWithPokeWildsAssets(scene: Phaser.Scene): void {
   canvas.width  = T;
   canvas.height = T * NUM_TILESET_TILES;
   const ctx = canvas.getContext("2d")!;
-  ctx.imageSmoothingEnabled = false;   // crisp pixel-art scaling
+  ctx.imageSmoothingEnabled = false;   // crisp nearest-neighbour pixel art
 
-  /** Draw a PokeWilds image into a tileset slot (scaled to T×T). */
+  // Blit the pixel-art base so every slot starts with a fallback
+  if (existingCanvas) {
+    ctx.drawImage(existingCanvas, 0, 0);
+  }
+
+  /** Overdraw a PokeWilds image onto a tileset slot (scaled to T×T). */
   function slot(
     idx: number,
     key: string,
@@ -417,6 +427,37 @@ export function generateFallbackTiles(scene: Phaser.Scene): void {
     drawFn(ctx);
     scene.textures.addCanvas(key, cv);
   }
+
+  // ── tile-tree-under (trunk/base — Y-sorts with player) ────────────────────
+  make("tile-tree-under", ctx => {
+    // Lower portion of a tree: thick trunk + root flare
+    ctx.fillStyle = "#5c3010";
+    ctx.fillRect(11, 0, 10, 32);   // trunk full height (player walks in front of upper part)
+    ctx.fillStyle = "#3c2008";
+    ctx.fillRect(15, 0, 6, 32);    // dark side of trunk
+    // Root flare at base
+    ctx.fillStyle = "#7a4010";
+    ctx.beginPath(); ctx.ellipse(16, 28, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#4a2608";
+    ctx.beginPath(); ctx.ellipse(16, 30, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // ── tile-tree-over (canopy — rendered above player) ────────────────────────
+  make("tile-tree-over", ctx => {
+    // Upper canopy — fills the tile that sits one tile above the trunk
+    ctx.fillStyle = "#143c0e";
+    ctx.beginPath(); ctx.arc(16, 20, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#1c5614";
+    ctx.beginPath(); ctx.arc(13, 16, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(20, 18, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#2a7020";
+    ctx.beginPath(); ctx.arc(11, 11, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(20, 11, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#38901e";
+    ctx.beginPath(); ctx.arc(14, 7, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#4aaa28";
+    ctx.beginPath(); ctx.arc(12, 4, 5, 0, Math.PI * 2); ctx.fill();
+  });
 
   // ── tile-tree ──────────────────────────────────────────────────────────────
   make("tile-tree", ctx => {
@@ -539,6 +580,24 @@ export function generateFallbackTiles(scene: Phaser.Scene): void {
     });
     ctx.fillStyle = "#ffee40"; ctx.beginPath(); ctx.arc(16, 13, 4, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#cc9900"; ctx.beginPath(); ctx.arc(16, 13, 2, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── tile-flower2 ──────────────────────────────────────────────────────────
+  make("tile-flower2", ctx => {
+    ctx.fillStyle = "#2a7018"; // stem
+    ctx.fillRect(15, 18, 2, 12);
+    ctx.fillStyle = "#3a9020"; // leaves
+    ctx.beginPath(); ctx.ellipse(11, 22, 5, 3, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(21, 23, 5, 3,  0.4, 0, Math.PI * 2); ctx.fill();
+    // white/purple petals
+    [0, Math.PI * 0.4, Math.PI * 0.8, Math.PI * 1.2, Math.PI * 1.6].forEach((a, i) => {
+      ctx.fillStyle = ["#cc44cc","#dd66dd","#aa22aa","#cc44cc","#dd66dd"][i];
+      ctx.beginPath();
+      ctx.ellipse(16 + Math.cos(a) * 6, 13 + Math.sin(a) * 6, 3.5, 2.5, a, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = "#ffe060"; ctx.beginPath(); ctx.arc(16, 13, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#cc9900"; ctx.beginPath(); ctx.arc(16, 13, 1.8, 0, Math.PI * 2); ctx.fill();
   });
 
   // ── tile-grass-detail ─────────────────────────────────────────────────────

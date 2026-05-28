@@ -23,36 +23,39 @@ const NPC_TRAINER_FILES: Array<{ key: string; url: string }> = [
 ];
 
 // ── Tile images — loaded directly from PokeWilds GitHub ──────────────────────
+// Verified paths as of 2025 (see tiles/ and root of repo):
+//   root:  ground1.png, ground2.png, rock_small1.png, grass1.png
+//   tiles: bush1.png, campfire1.png, chest1.png, fence1_NS.png,
+//          flower1-5.png, grass_short2.png, green1.png, desert1-6.png,
+//          berrytree_*.png, grass2_under.png, grass2_over.png
+//   tiles/autotiles: autotile_path1.png, autotile_shore1-3.png
 const TILE_IMAGES: Array<{ key: string; url: string }> = [
-  // Ground base tiles
-  { key: "tile-ground1",     url: `${PW}/ground1.png`                           },
-  { key: "tile-ground2",     url: `${PW}/ground2.png`                           },
-  // Environment / terrain
-  { key: "tile-path",        url: `${PW}/tiles/path1.png`                       },
-  { key: "tile-water",       url: `${PW}/tiles/water1.png`                      },
-  { key: "tile-sand",        url: `${PW}/tiles/sand1.png`                       },
-  { key: "tile-mountain",    url: `${PW}/tiles/mountain1.png`                   },
-  { key: "tile-shore",       url: `${PW}/tiles/autotiles/autotile_shore1.png`   },
-  { key: "tile-green1",      url: `${PW}/tiles/green1.png`                      },
-  { key: "tile-desert",      url: `${PW}/tiles/desert1.png`                     },
-  // Trees
-  { key: "tile-tree",        url: `${PW}/tiles/tree1.png`                       },
-  { key: "tile-tree-large",  url: `${PW}/tiles/tree_large1.png`                 },
-  { key: "tile-tree-under",  url: `${PW}/tiles/tree2_under.png`                 },
-  { key: "tile-tree-over",   url: `${PW}/tiles/tree2_over.png`                  },
-  // Objects / resources
-  { key: "tile-rock",        url: `${PW}/tiles/rock1.png`                       },
-  { key: "tile-bush",        url: `${PW}/tiles/bush1.png`                       },
-  // Structures
-  { key: "tile-campfire",    url: `${PW}/tiles/campfire1.png`                   },
-  { key: "tile-chest",       url: `${PW}/tiles/chest1.png`                      },
-  { key: "tile-fence",       url: `${PW}/tiles/fence1_NS.png`                   },
-  // Decoration
-  { key: "tile-flower",      url: `${PW}/tiles/flower1.png`                     },
-  { key: "tile-flower2",     url: `${PW}/tiles/flower2.png`                     },
-  { key: "tile-grass-tall",  url: `${PW}/tiles/grass3_over.png`                 },
-  { key: "tile-grass-short", url: `${PW}/tiles/grass_short2.png`               },
-  { key: "tile-torch",       url: `${PW}/tiles/torch_sheet1.png`                },
+  // Ground base tiles (root of repo) ✅
+  { key: "tile-ground1",     url: `${PW}/ground1.png`                                  },
+  { key: "tile-ground2",     url: `${PW}/ground2.png`                                  },
+  // Environment / terrain ✅
+  { key: "tile-path",        url: `${PW}/tiles/autotiles/autotile_path1.png`           },
+  { key: "tile-shore",       url: `${PW}/tiles/autotiles/autotile_shore1.png`          },
+  { key: "tile-green1",      url: `${PW}/tiles/green1.png`                             },
+  { key: "tile-desert",      url: `${PW}/tiles/desert1.png`                            },
+  // Trees — use PokeWilds berry tree sprites as world trees ✅
+  { key: "tile-tree",        url: `${PW}/tiles/berrytree_lum.png`                      },
+  { key: "tile-tree-large",  url: `${PW}/tiles/berrytree_aspear.png`                   },
+  // Two-tile encounter-grass sprites (under = ground layer, over = canopy) ✅
+  { key: "tile-tree-under",  url: `${PW}/tiles/grass2_under.png`                       },
+  { key: "tile-tree-over",   url: `${PW}/tiles/grass2_over.png`                        },
+  // Objects / resources ✅
+  { key: "tile-rock",        url: `${PW}/rock_small1.png`                              },
+  { key: "tile-bush",        url: `${PW}/tiles/bush1.png`                              },
+  // Structures ✅
+  { key: "tile-campfire",    url: `${PW}/tiles/campfire1.png`                          },
+  { key: "tile-chest",       url: `${PW}/tiles/chest1.png`                             },
+  { key: "tile-fence",       url: `${PW}/tiles/fence1_NS.png`                          },
+  // Decoration ✅
+  { key: "tile-flower",      url: `${PW}/tiles/flower1.png`                            },
+  { key: "tile-flower2",     url: `${PW}/tiles/flower2.png`                            },
+  { key: "tile-grass-tall",  url: `${PW}/tiles/grass3_over.png`                        },
+  { key: "tile-grass-short", url: `${PW}/tiles/grass_short2.png`                       },
 ];
 
 export class BootScene extends Phaser.Scene {
