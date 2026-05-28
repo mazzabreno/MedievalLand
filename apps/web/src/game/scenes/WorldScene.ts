@@ -51,6 +51,9 @@ const STRUCTURE_SPRITES: Record<string, string> = {
   CRAFTING_TABLE: "tile-campfire",
 };
 
+/** Tool outputs — crafted into inventory, never enter placement mode */
+const TOOL_TYPES = new Set(["AXE", "PICKAXE", "SHOVEL", "SWORD", "BOW"]);
+
 const RESOURCE_COLOR: Record<ResourceType, number> = {
   WOOD:  0xa0522d,
   STONE: 0xaaaaaa,
@@ -467,16 +470,40 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  // ── Build mode ────────────────────────────────────────────────────────────
+  // ── Build mode / crafting ─────────────────────────────────────────────────
   private enterBuildMode(recipeOutput: string): void {
     const recipe = CRAFTING_RECIPES.find(r => r.output === recipeOutput);
     if (!recipe) return;
+
+    // Check ingredients for both tools and structures
     for (const ing of recipe.ingredients) {
       if ((this.inventory[ing.resource as ResourceType] ?? 0) < ing.amount) {
         this.chat.addSystemMessage(`Not enough ${ing.resource} (need ${ing.amount})`);
         return;
       }
     }
+
+    // ── Tools: craft immediately into inventory ──────────────────────────────
+    if (TOOL_TYPES.has(recipeOutput)) {
+      for (const ing of recipe.ingredients)
+        this.inventory[ing.resource as ResourceType] -= ing.amount;
+      this.inventory[recipeOutput as "AXE" | "PICKAXE" | "SHOVEL" | "SWORD" | "BOW"]++;
+
+      // Floating popup at player position
+      const popup = this.add.text(this.avatar.x, this.avatar.y - 24,
+        `✔ Crafted ${recipeOutput}!`, {
+          fontSize: "9px", fontFamily: '"Press Start 2P", monospace',
+          color: "#ffd700", stroke: "#000000", strokeThickness: 3, resolution: 2,
+        }).setOrigin(0.5, 1).setDepth(99999);
+      this.tweens.add({ targets: popup, y: popup.y - 36, alpha: 0, duration: 1400,
+        onComplete: () => popup.destroy() });
+
+      this.chat.addSystemMessage(`Crafted ${recipeOutput}!`);
+      this.emitInventory();
+      return;
+    }
+
+    // ── Structures: enter placement mode ────────────────────────────────────
     this.exitBuildMode();
     this.buildMode = recipeOutput;
     const spriteKey = STRUCTURE_SPRITES[recipeOutput] ?? "tile-campfire";
@@ -664,8 +691,17 @@ export class WorldScene extends Phaser.Scene {
   // ── Inventory broadcast ───────────────────────────────────────────────────
   private emitInventory(): void {
     window.dispatchEvent(new CustomEvent("medieval-land:inventory", {
-      detail: { WOOD: this.inventory.WOOD, STONE: this.inventory.STONE,
-                FIBER: this.inventory.FIBER, FOOD: this.inventory.FOOD },
+      detail: {
+        WOOD:    this.inventory.WOOD,
+        STONE:   this.inventory.STONE,
+        FIBER:   this.inventory.FIBER,
+        FOOD:    this.inventory.FOOD,
+        AXE:     this.inventory.AXE,
+        PICKAXE: this.inventory.PICKAXE,
+        SHOVEL:  this.inventory.SHOVEL,
+        SWORD:   this.inventory.SWORD,
+        BOW:     this.inventory.BOW,
+      },
     }));
     const available = CRAFTING_RECIPES.filter(r =>
       r.ingredients.every(ing => (this.inventory[ing.resource as keyof Inventory] ?? 0) >= ing.amount)
