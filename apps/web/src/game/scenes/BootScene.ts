@@ -38,12 +38,11 @@ const TILE_IMAGES: Array<{ key: string; url: string }> = [
   { key: "tile-shore",       url: `${PW}/tiles/autotiles/autotile_shore1.png`          },
   { key: "tile-green1",      url: `${PW}/tiles/green1.png`                             },
   { key: "tile-desert",      url: `${PW}/tiles/desert1.png`                            },
-  // Trees — use PokeWilds berry tree sprites as world trees ✅
+  // Trees — PokeWilds berry tree sprites for single-tile nodes ✅
+  // tile-tree-under / tile-tree-over use pixel-art fallbacks (see tilesetGenerator)
+  // because encounter-grass sprites (grass2_under/over) don't look like trees
   { key: "tile-tree",        url: `${PW}/tiles/berrytree_lum.png`                      },
   { key: "tile-tree-large",  url: `${PW}/tiles/berrytree_aspear.png`                   },
-  // Two-tile encounter-grass sprites (under = ground layer, over = canopy) ✅
-  { key: "tile-tree-under",  url: `${PW}/tiles/grass2_under.png`                       },
-  { key: "tile-tree-over",   url: `${PW}/tiles/grass2_over.png`                        },
   // Objects / resources ✅
   { key: "tile-rock",        url: `${PW}/rock_small1.png`                              },
   { key: "tile-bush",        url: `${PW}/tiles/bush1.png`                              },
