@@ -552,6 +552,125 @@ export function generateFallbackTiles(scene: Phaser.Scene): void {
     [[4,8],[25,8],[4,25],[25,25]].forEach(([x, y]) => ctx.fillRect(x, y, 3, 3));
   });
 
+  // ── tile-wood-wall ────────────────────────────────────────────────────────
+  make("tile-wood-wall", ctx => {
+    // Solid horizontal log-wall section
+    const planks = [2, 10, 18, 26];
+    planks.forEach((y, i) => {
+      ctx.fillStyle = i % 2 === 0 ? "#7a5228" : "#8a6030";
+      ctx.fillRect(0, y, 32, 8);
+      // Plank grain lines
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.fillRect(0, y + 3, 32, 1);
+      ctx.fillRect(0, y + 6, 32, 1);
+    });
+    // Dark mortar lines between planks
+    ctx.fillStyle = "#3e2010";
+    [10, 18, 26].forEach(y => ctx.fillRect(0, y, 32, 2));
+    // Shadow right edge
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillRect(29, 0, 3, 32);
+  });
+
+  // ── tile-wood-door ────────────────────────────────────────────────────────
+  make("tile-wood-door", ctx => {
+    // Frame
+    ctx.fillStyle = "#5c3c18";
+    ctx.fillRect(0, 0, 32, 32);
+    // Door panel (lighter wood)
+    ctx.fillStyle = "#9a6430";
+    ctx.fillRect(3, 2, 26, 30);
+    // Panel recesses
+    ctx.fillStyle = "#7a5028";
+    ctx.fillRect(5, 4, 22, 12); ctx.fillRect(5, 18, 22, 12);
+    // Vertical plank splits
+    ctx.fillStyle = "#8a5828";
+    ctx.fillRect(15, 4, 2, 26);
+    // Handle
+    ctx.fillStyle = "#c89030";
+    ctx.beginPath(); ctx.arc(22, 17, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(21, 17, 3, 5);
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.20)";
+    ctx.fillRect(28, 0, 4, 32);
+  });
+
+  // ── tile-stone-wall ───────────────────────────────────────────────────────
+  make("tile-stone-wall", ctx => {
+    // Stone block pattern — alternating offset rows
+    const rows = [
+      { y:  0, h: 9, offset: 0 },
+      { y:  9, h: 9, offset: 8 },
+      { y: 18, h: 9, offset: 0 },
+      { y: 27, h: 5, offset: 8 },
+    ];
+    rows.forEach(({ y, h, offset }) => {
+      for (let x = -offset; x < 32; x += 16) {
+        const shade = Math.sin((x + y) * 0.5) * 10;
+        ctx.fillStyle = `rgb(${clamp(72 + shade)},${clamp(70 + shade)},${clamp(76 + shade)})`;
+        ctx.fillRect(x + 1, y + 1, 14, h - 2);
+        // Highlight top-left
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.fillRect(x + 1, y + 1, 14, 2);
+      }
+    });
+    // Mortar
+    ctx.fillStyle = "#3a3a42";
+    [9, 18, 27].forEach(y => ctx.fillRect(0, y, 32, 1));
+  });
+
+  // ── tile-stone-gate ───────────────────────────────────────────────────────
+  make("tile-stone-gate", ctx => {
+    // Stone frame
+    ctx.fillStyle = "#606068";
+    ctx.fillRect(0, 0, 32, 32);
+    // Arch opening (dark inside)
+    ctx.fillStyle = "#18181c";
+    ctx.beginPath();
+    ctx.arc(16, 18, 11, Math.PI, 0, false);
+    ctx.rect(5, 18, 22, 14);
+    ctx.fill();
+    // Stone block highlights
+    ctx.fillStyle = "#8a8a94";
+    ctx.fillRect(0, 0, 5, 32); ctx.fillRect(27, 0, 5, 32);
+    ctx.fillRect(0, 0, 32, 5);
+    // Keystone
+    ctx.fillStyle = "#9a9aaa";
+    ctx.beginPath(); ctx.arc(16, 7, 5, 0, Math.PI * 2); ctx.fill();
+    // Portcullis bars (iron grid)
+    ctx.strokeStyle = "#606060"; ctx.lineWidth = 1.5;
+    [9, 13, 17, 21].forEach(x => {
+      ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, 32); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.moveTo(5, 16); ctx.lineTo(27, 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, 23); ctx.lineTo(27, 23); ctx.stroke();
+  });
+
+  // ── tile-crafting-table ───────────────────────────────────────────────────
+  make("tile-crafting-table", ctx => {
+    // Table body
+    ctx.fillStyle = "#7a5228"; ctx.fillRect(2, 14, 28, 16); // front face
+    ctx.fillStyle = "#9a6a38"; ctx.fillRect(2,  8, 28,  8); // top surface
+    ctx.fillStyle = "#5a3a18"; ctx.fillRect(2, 28, 28,  3); // bottom shadow
+    // Table top cross-hatching (workbench pattern)
+    ctx.strokeStyle = "#7a5228"; ctx.lineWidth = 1;
+    for (let x = 4; x < 30; x += 6) {
+      ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, 16); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(2, 12); ctx.lineTo(30, 12); ctx.stroke();
+    // Legs
+    ctx.fillStyle = "#5a3a18";
+    ctx.fillRect( 3, 28, 4, 4); ctx.fillRect(25, 28, 4, 4);
+    // Tool markings on surface (chisel marks)
+    ctx.strokeStyle = "#c8a060"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(7, 9); ctx.lineTo(12, 15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(16, 9); ctx.lineTo(22, 9); ctx.stroke();
+    // Iron nail accents
+    ctx.fillStyle = "#888888";
+    [[4,10],[28,10],[4,26],[28,26]].forEach(([x,y]) =>
+      ctx.fillRect(x - 1, y - 1, 2, 2));
+  });
+
   // ── tile-fence ────────────────────────────────────────────────────────────
   make("tile-fence", ctx => {
     ctx.fillStyle = "#7a5428"; // posts

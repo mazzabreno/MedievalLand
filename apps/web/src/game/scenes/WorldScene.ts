@@ -49,9 +49,11 @@ const STRUCTURE_SPRITES: Record<string, string> = {
   CAMPFIRE:       "tile-campfire",
   CHEST:          "tile-chest",
   WOODEN_FENCE:   "tile-fence",
-  WOODEN_WALL:    "tile-fence",
-  WOODEN_DOOR:    "tile-fence",
-  CRAFTING_TABLE: "tile-campfire",
+  WOODEN_WALL:    "tile-wood-wall",
+  WOODEN_DOOR:    "tile-wood-door",
+  STONE_WALL:     "tile-stone-wall",
+  STONE_GATE:     "tile-stone-gate",
+  CRAFTING_TABLE: "tile-crafting-table",
 };
 
 /** Tool outputs — crafted into inventory, never enter placement mode */
