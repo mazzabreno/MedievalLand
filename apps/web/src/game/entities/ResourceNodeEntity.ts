@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { WorldScene } from "../scenes/WorldScene";
-import type { TileType } from "@medieval-land/shared";
+import type { TileType } from "@/shared";
 
 const NODE_YIELDS: Partial<Record<TileType, { resource: "WOOD" | "STONE" | "FIBER" | "FOOD"; amount: number; requiredTool: "AXE" | "PICKAXE" | null }>> = {
   TREE_OAK: { resource: "WOOD", amount: 3, requiredTool: "AXE" },

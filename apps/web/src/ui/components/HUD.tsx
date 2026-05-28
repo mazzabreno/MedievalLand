@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { InventoryPanel } from "../panels/InventoryPanel";
 import { CraftingPanel } from "../panels/CraftingPanel";
 import { BuildingPanel } from "../panels/BuildingPanel";
-import type { ResourceStack } from "@medieval-land/shared";
+import type { ResourceStack } from "@/shared";
 
 interface PlayerStateUpdate {
   stamina: number;

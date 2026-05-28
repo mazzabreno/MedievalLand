@@ -1,7 +1,7 @@
 "use client";
 
-import type { StructureType } from "@medieval-land/shared";
-import { STRUCTURE_COSTS } from "@medieval-land/shared";
+import type { StructureType } from "@/shared";
+import { STRUCTURE_COSTS } from "@/shared";
 
 const BUILDABLE: StructureType[] = [
   "WOODEN_FENCE", "WOODEN_WALL", "WOODEN_DOOR",

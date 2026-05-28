@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { WorldScene } from "../scenes/WorldScene";
-import type { CreatureType } from "@medieval-land/shared";
-import { CREATURE_TIERS, CREATURE_SCORE_POINTS } from "@medieval-land/shared";
+import type { CreatureType } from "@/shared";
+import { CREATURE_TIERS, CREATURE_SCORE_POINTS } from "@/shared";
 
 const CREATURE_HP: Record<CreatureType, number> = {
   WOLF: 20,

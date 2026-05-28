@@ -1,5 +1,5 @@
 import type { PlayerEntity } from "../entities/PlayerEntity";
-import { STAMINA_REGEN_PER_10MIN } from "@medieval-land/shared";
+import { STAMINA_REGEN_PER_10MIN } from "@/shared";
 
 /** Regenerates player stamina in real time. 10 per 10 minutes = 1 per minute. */
 export class StaminaSystem {

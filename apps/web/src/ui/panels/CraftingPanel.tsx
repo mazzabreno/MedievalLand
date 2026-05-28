@@ -1,7 +1,7 @@
 "use client";
 
-import { CRAFTING_RECIPES } from "@medieval-land/shared";
-import type { ResourceStack } from "@medieval-land/shared";
+import { CRAFTING_RECIPES } from "@/shared";
+import type { ResourceStack } from "@/shared";
 
 interface Props {
   inventory: ResourceStack[];

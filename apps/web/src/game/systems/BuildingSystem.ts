@@ -1,6 +1,6 @@
 import type { WorldScene } from "../scenes/WorldScene";
-import type { StructureType } from "@medieval-land/shared";
-import { STRUCTURE_COSTS } from "@medieval-land/shared";
+import type { StructureType } from "@/shared";
+import { STRUCTURE_COSTS } from "@/shared";
 import { StructureEntity } from "../entities/StructureEntity";
 
 export class BuildingSystem {

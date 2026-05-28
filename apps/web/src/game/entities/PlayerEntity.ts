@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 import type { WorldScene } from "../scenes/WorldScene";
 import { TILE_SIZE } from "../config/gameConfig";
-import { BASE_STAMINA, STAMINA_COSTS } from "@medieval-land/shared";
-import type { ResourceStack, ToolType } from "@medieval-land/shared";
+import { BASE_STAMINA, STAMINA_COSTS } from "@/shared";
+import type { ResourceStack, ToolType } from "@/shared";
 
 export class PlayerEntity {
   scene: WorldScene;

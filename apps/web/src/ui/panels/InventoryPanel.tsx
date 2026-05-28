@@ -1,6 +1,6 @@
 "use client";
 
-import type { ResourceStack } from "@medieval-land/shared";
+import type { ResourceStack } from "@/shared";
 
 interface Props {
   inventory: ResourceStack[];

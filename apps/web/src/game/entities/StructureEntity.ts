@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { WorldScene } from "../scenes/WorldScene";
-import type { StructureType } from "@medieval-land/shared";
-import { STRUCTURE_HP, STRUCTURE_COSTS } from "@medieval-land/shared";
+import type { StructureType } from "@/shared";
+import { STRUCTURE_HP, STRUCTURE_COSTS } from "@/shared";
 
 export class StructureEntity extends Phaser.GameObjects.Sprite {
   structureType: StructureType;
